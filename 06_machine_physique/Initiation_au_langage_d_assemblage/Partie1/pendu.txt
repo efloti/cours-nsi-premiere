@@ -1,0 +1,108 @@
+//Utilisation des registres:
+//  R0 rôles multiples
+//  R1 mot secret chargé depuis la memoire (chargé puis effacé de facon qu'il n'apparaisse pas dans l'UI))
+//  R2 choix courant pour la lettre
+//  R3 lettres devinées en position, octet nul pour une lettre non encore découverte
+//  R4 lettre à la position courante dans le mot secret
+//  R5 masque pour sélectionner le caractère courant (0xff ou 0xff00 ou 0xff0000 ou 0xff000000) 
+//  R6 mémorise s'il y a correspondance ou non
+//  R7 décalage à appliquer au masque (0 > 8 > 16 > 24)
+//  R8 nombre d'erreurs (10 --> pendu)
+//  R9 nombre de lettres découvertes (4 --> gagné)
+
+captureWord:
+    MOV R0, #setter
+    STR R0, .WriteString
+    MOV R0, #secretWord
+    STR R0, .ReadSecret
+
+
+guessLetter:
+    MOV R0, #player
+    STR R0, .WriteString
+
+waitForKey:
+    //Boucle événementiel: attente «active» de l'appui sur une touche
+    LDR R2, .LastKeyAndReset
+    CMP R2, #0
+    BEQ waitForKey
+    //l'utilisateur a appuyé sur une touche
+    ORR R2, R2, #32 //force le caractère en minuscule (ASCII: A->01000001 et a->01100001 = 01000001 | 00100000(32))
+    MOV R6, #0      //sera mis a 1 s'il y a correspondance. 
+    MOV R7, #0      //décalage du masque pour sélectionner les caractères successifs (sera incrementé 0 > 8 > 16 > 24)
+
+checkForMatch:
+    MOV R5, #0xff  //Masque ...
+    LSL R5, R5, R7 //qu'on décale (0xff -> 0xff00 -> 0xff0000 -> 0xff000000) sur le caractère courant
+    AND R0, R3, R5 //Appliquer le masque au mot partiel (si une lettre n'a pas encore été découverte, l'octet est nul):
+    CMP R0, #0     //Si R0 est nul,
+    BEQ cont       //on doit comparer avec la lettre (ayant la position courante) du mot secret,
+    // sinon le caractère a déjà été trouvé précédemment (inutile de comparer avec le mot secret)
+    LSR R4, R0, R7 // on le remet au début pour l'écrire a l'écran.
+    B writeChar
+
+cont: LDR R1, secretWord
+    AND R0, R1, R5  //Sélectionne le caractère pour la position courante et
+    MOV R1, #0      //le remettre a zéro pour ne pas révéler le mot secret (lorsque l'UI est en pause).
+    LSR R4, R0, R7  //Mettre le caractère en premiere position
+    ORR R4, R4, #32 //puis le mettre en minuscule
+    CMP R4, R2      //et comparer avec le choix courant.
+    BNE notAMatch
+    ORR R3, R3, R0  //Ajoute la lettre devinée à sa position dans R3 
+    ADD R9, R9, #1  //et incrémente le nombre de lettres trouvées.
+    MOV R6, #1      //Mettre R6 a 1 pour marquer qu'une nouvelle lettre a été trouvée
+    B writeChar
+
+notAMatch:
+    MOV R4, #95 //Caractère ASCII de soulignement
+
+writeChar:
+    STR R4, .WriteChar
+    ADD R7, R7, #8   //Décalage pour le prochain caractère.
+    CMP R7, #32      //Reste-t-il des lettres a examiner?
+    BLT checkForMatch
+    //c'était le dernier, on saute à la ligne ...
+    MOV R0, #10      //Caractère ASCII de saut de ligne «\n».
+    STR R0, .WriteChar
+    //... et on fait les comptes
+    CMP R6, #0       //y a-t-il eu correspondance?
+    BNE checkForWin  //oui
+    //non: on incrémente le nombre d'erreurs
+    ADD R8, R8, #1
+    //puis on écrit un message et on avance dans le dessin.
+    STR R8, .WriteUnsignedNum
+    MOV R0, #wrong
+    STR R0, .WriteString
+    B drawPic
+
+checkForWin:
+    CMP R9, #4
+    BNE guessLetter //il en reste!
+    MOV R0, #win
+    STR R0, .WriteString
+    HALT
+
+
+//Insérer votre code drawPic ici - ne pas inclure endDraw, qui a été redéfini ci-dessous
+
+
+endDraw:
+    // le joueur a-t-il perdu?
+    CMP R8, #10 
+    BLT guessLetter //non
+    //oui: peindre la tête en noir et signifier au joueur qu'il est pendu!
+    MOV R0, #.black 
+    STR R0, .Pixel519
+    MOV R0, #lose
+    STR R0, .WriteString
+    MOV R0, #secretWord
+    STR R0, .WriteString
+    HALT
+
+setter: .ASCIZ "Questionneur: Saisir le mot\n"
+player: .ASCIZ "Joueur: essayer une lettre\n"
+win: .ASCIZ "Vous gagnez!\n"
+lose: .ASCIZ "Vous etes pendu! le mot etait:"
+wrong: .ASCIZ "Faux. "
+.ALIGN 512
+secretWord:

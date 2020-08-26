@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Nombre Mystère</title>
+    <style>
+      html {
+        font-family: sans-serif;
+      }
+
+      body {
+        width: 50%;
+        max-width: 800px;
+        min-width: 480px;
+        margin: 0 auto;
+      }
+
+      .feedback {
+        color: white;
+        padding: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Jeu - nombre mystère</h1>
+    <p>
+        Nous avons sélectionné un nombre mystère compris entre 1 et 1000. 
+        Tu dois le retrouver le plus vite possible!
+    </p>
+    <label>Saisis le nombre auquel tu penses: </label>
+    <input type="text" id="saisie">
+    <div class="informations">
+      <p class="essais"></p>
+      <p class="feedback"></p>
+      <p class="indice"></p>
+    </div>
+
+    <script>
+      let a_deviner = Math.floor(Math.random() * 1000) + 1;
+      let nbEssais = 1;
+      
+      // Récupérons les différents éléments de la page
+      let saisieElt = document.querySelector('#saisie');
+      let essaisElt = document.querySelector('.essais');
+      let feedbackElt = document.querySelector('.feedback');
+      let indiceElt = document.querySelector('.indice');
+      let recommencerElt; // sera initialisé plus tard
+      
+      function verifierChoix(evt) {
+        if (evt.key !== "Enter") return;
+        
+        let choix = Number(saisieElt.value);
+        
+        // structure de sélection
+        if (nbEssais === 1) {
+          essaisElt.textContent = 'Essais précédent: ';
+        }
+
+        essaisElt.textContent += choix + ' ';
+
+        if (choix === a_deviner) {
+          feedbackElt.textContent = 'Félicitation! Tu as trouvé!';
+          feedbackElt.style.backgroundColor = 'green';
+          indiceElt.textContent = '';
+          finJeu();
+        } else if (nbEssais === 10) {
+          feedbackElt.textContent = "!!!PERDU!!! c'était " + a_deviner;
+          indiceElt.textContent = '';
+          finJeu();
+        } else {
+          feedbackElt.textContent = 'FAUX!';
+          feedbackElt.style.backgroundColor = 'red';
+          if(choix < a_deviner) {
+            indiceElt.textContent = 'Le dernier choix est trop petit!' ;
+          } else if (choix > a_deviner) {
+            indiceElt.textContent = 'Le dernier choix est trop grand!';
+          }
+        }
+
+        nbEssais++;
+        saisieElt.value = '';
+        saisieElt.focus();
+      }
+      
+      // gestion de l'événement click sur la zone de saisie
+      saisieElt.addEventListener('keyup', verifierChoix);
+
+      function finJeu() {
+        saisieElt.disabled = true;
+        recommencerElt = document.createElement('button');
+        recommencerElt.textContent = 'Recommencer une partie';
+        document.body.appendChild(recommencerElt);
+        recommencerElt.addEventListener('click', reinitialiserJeu);
+      }
+
+      function reinitialiserJeu() {
+        nbEssais = 1;
+        
+        let informationElts = document.querySelectorAll('.informations p');
+        
+        // boucle pour réinitialiser la zone «information»
+        for (let i = 0 ; i < informationElts.length ; i++) {
+          informationElts[i].textContent = '';
+        }
+
+        recommencerElt.parentNode.removeChild(recommencerElt);
+        saisieElt.disabled = false;
+        saisieElt.value = '';
+        saisieElt.focus();
+        feedbackElt.style.backgroundColor = 'white';
+        a_deviner = Math.floor(Math.random() * 1000) + 1;
+      }
+    </script>
+  </body>
+</html>

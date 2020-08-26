@@ -1,0 +1,54 @@
+//R0 - allumettes restantes
+//R1 - pour afficher les messages
+//R2 - nombre d'allumette prises
+    MOV R0, #15
+loop:
+    //Affiche le nombre d'allumettes restantes
+    STR R0, .WriteUnsignedNum 
+    MOV R1, #msg1
+    STR R1, .WriteString
+//Au tour de l'ordinateur
+select: LDR R2, .Random
+    AND R2, R2, #3
+    CMP R2, #0
+    BEQ select
+    CMP R2, R0
+    BGT select
+    BEQ select
+cont: STR R2, .WriteSignedNum
+    MOV R1, #msg4
+    STR R1, .WriteString
+    SUB R0, R0, R2
+    //Afficher le nombre d'allumettes restantes
+    STR R0, .WriteUnsignedNum
+    MOV R1, #msg1
+    STR R1, .WriteString
+    //Vérifier si l'ordinateur l'emporte
+    CMP R0, #1
+    BEQ computerWins
+    //Au tour du joueur
+    MOV R1, #msg2
+    STR R1, .WriteString
+input: LDR R2, .InputNum
+    CMP R2, #3
+    BGT input
+    CMP R2, #1
+    BLT input
+    CMP R2, R0
+    BGT input
+    SUB R0, R0, R2
+    //Vérifier si le joueur l'emporte
+    CMP R0, #1
+    BEQ playerWins
+    B loop
+playerWins: MOV R1, #msg3
+    STR R1, .WriteString
+    HALT
+computerWins: MOV R1, #msg5
+    STR R1, .WriteString
+    HALT
+msg1: .ASCIZ "allumettes restantes.\n"
+msg2: .ASCIZ "Combien d'allumettes voulez-vous prendre (1-3)?\n"
+msg3: .ASCIZ "Vous gagnez!\n"
+msg4: .ASCIZ "prises par l'ordinateur.\n"
+msg5: .ASCIZ "L'ordinateur gagne! \n"

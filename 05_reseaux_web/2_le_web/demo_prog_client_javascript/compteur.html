@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        let compteur = 0;
+        function suivant() {
+            compteur = compteur + 1;
+            let vElt = document.querySelector('#valeur');
+            vElt.textContent = compteur;
+        }
+    </script>
+</head>
+<body>
+    <button onclick="suivant();">clic!</button>
+    <span id="valeur">0</span>
+</body>
+</html>
